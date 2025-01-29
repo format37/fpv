@@ -25,5 +25,5 @@ df_with_totals = pd.concat([df, totals], ignore_index=True)
 df_with_totals = df_with_totals.fillna('')
 
 # Save DataFrame as markdown to file
-with open('pricing.md', 'w') as f:
+with open('README.md', 'w') as f:
     f.write(df_with_totals.to_markdown())
