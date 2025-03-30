@@ -3,8 +3,10 @@
 import os
 import csv
 import argparse
+import threading
 from pymavlink import mavutil
 from datetime import datetime
+import time # Import time for potential future optimizations/debugging
 
 def list_message_types(bin_file_path):
     """
@@ -16,183 +18,237 @@ def list_message_types(bin_file_path):
     Returns:
         dict: Dictionary with message types as keys and counts as values
     """
-    mlog = mavutil.mavlink_connection(bin_file_path)
     msg_types = {}
-    
-    # Iterate through all messages
-    while True:
-        msg = mlog.recv_match(blocking=False)
-        if msg is None:
-            break
-        
-        msg_type = msg.get_type()
-        if msg_type in msg_types:
-            msg_types[msg_type] += 1
-        else:
-            msg_types[msg_type] = 1
-    
+    mlog = None
+    try:
+        mlog = mavutil.mavlink_connection(bin_file_path)
+        while True:
+            # Use blocking=False and add a small sleep to avoid pegging CPU if file is large
+            # Or just rely on default blocking=True which might be simpler/more robust
+            msg = mlog.recv_match(blocking=True) # Use blocking=True (default)
+            if msg is None:
+                break # End of file
+
+            msg_type = msg.get_type()
+            if msg_type not in ['FMT', 'FMTU', 'MULT', 'PARM', 'MSG', 'MODE', 'EV', 'UNIT', 'XKF0']: # Exclude format/metadata types if desired
+                 if msg_type in msg_types:
+                     msg_types[msg_type] += 1
+                 else:
+                     msg_types[msg_type] = 1
+    except Exception as e:
+        print(f"Error listing message types in {bin_file_path}: {e}")
+    # mlog doesn't explicitly need closing AFAIK
     return msg_types
 
-def extract_messages(bin_file_path, output_csv_path, message_type=None):
+# Rename and simplify the extraction function for a single message type
+def extract_single_message_type(bin_file_path, output_csv_path, message_type):
     """
-    Extract messages of specified type from a binary MAVLink log file and save to CSV
-    
+    Extract messages of a specific type from a binary MAVLink log file and save to CSV.
+
     Args:
-        bin_file_path (str): Path to the binary log file
-        output_csv_path (str): Path to save the CSV output
-        message_type (str): Type of message to extract (None for optical flow)
+        bin_file_path (str): Path to the binary log file.
+        output_csv_path (str): Path to save the CSV output.
+        message_type (str): Type of message to extract.
     """
-    # Open the binary log file
-    mlog = mavutil.mavlink_connection(bin_file_path)
-    
-    # Check if file contains the requested message types
-    message_types = list_message_types(bin_file_path)
-    print(f"Message types found in {bin_file_path}:")
-    for msg_type, count in sorted(message_types.items()):
-        print(f"  {msg_type}: {count} messages")
-    
-    # If message_type is specified, use that
-    if message_type:
-        target_types = [message_type] if message_type in message_types else []
-        if not target_types:
-            print(f"Warning: Message type '{message_type}' not found in {bin_file_path}")
-            return
-    else:
-        # Look for optical flow message types as default
-        target_types = ['OF'] if 'OF' in message_types else []
-        
-        # Also check for other possible optical flow message types
-        additional_types = [msg_type for msg_type in message_types.keys() 
-                            if ('FLOW' in msg_type or 'OPTICAL' in msg_type) and msg_type != 'OF']
-        
-        if additional_types:
-            target_types.extend(additional_types)
-        
-        if not target_types:
-            print(f"Warning: No optical flow messages found in {bin_file_path}")
-            return
-    
-    print(f"Found target message types: {target_types}")
-    
-    # Reset the file pointer
-    mlog = mavutil.mavlink_connection(bin_file_path)
-    
-    # Prepare CSV file
-    with open(output_csv_path, 'w', newline='') as csvfile:
-        # First, get a sample message to determine all possible fieldnames
-        all_fieldnames = set(['timestamp', 'message_type'])  # Always include these
-        
-        # Get a sample of each message type to collect all possible fields
-        for target_type in target_types:
-            mlog_sample = mavutil.mavlink_connection(bin_file_path)
-            sample_msg = mlog_sample.recv_match(type=target_type)
-            if sample_msg and hasattr(sample_msg, '_fieldnames'):
-                all_fieldnames.update(sample_msg._fieldnames)
-        
-        # Convert to list and sort for consistent output
-        fieldnames = sorted(list(all_fieldnames))
-        
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        
-        # Counter for extracted messages
-        extracted_count = 0
-        
-        # Iterate through all messages
-        for target_type in target_types:
-            # Reset the file pointer
-            mlog = mavutil.mavlink_connection(bin_file_path)
-            
-            while True:
-                msg = mlog.recv_match(type=target_type)
-                if msg is None:
-                    break
-                
-                # Create a dictionary for the row data
-                row_data = {
-                    'timestamp': datetime.fromtimestamp(msg._timestamp).strftime('%Y-%m-%d %H:%M:%S.%f'),
-                    'message_type': target_type,
-                }
-                
-                # Add all fields from the message using _fieldnames and _elements
-                if hasattr(msg, '_fieldnames') and hasattr(msg, '_elements'):
-                    for fieldname, element in zip(msg._fieldnames, msg._elements):
-                        row_data[fieldname] = element
-                
-                # Write message data to CSV
+    print(f"Extracting message type: {message_type} from {bin_file_path} to {output_csv_path}")
+    mlog = None
+    extracted_count = 0
+    first_message = True
+    writer = None
+    csvfile = None # Define csvfile here to close it in finally block
+
+    try:
+        # Open the log file
+        mlog = mavutil.mavlink_connection(bin_file_path)
+        if mlog is None:
+             print(f"Error: Could not open MAVLink log file {bin_file_path}")
+             return # Cannot proceed
+
+        # Open CSV file - moved inside the loop condition below
+        # to avoid creating empty files if no messages are found
+
+        while True:
+            msg = mlog.recv_match(type=message_type, blocking=True) # blocking=True is default
+            if msg is None: # End of file
+                break
+
+            # On the first message, open CSV, determine headers and initialize writer
+            if first_message:
+                try:
+                    csvfile = open(output_csv_path, 'w', newline='')
+                except IOError as e:
+                    print(f"Error: Could not open CSV file {output_csv_path} for writing: {e}")
+                    return # Cannot proceed
+
+                fieldnames = ['timestamp', 'message_type'] # Base fields
+                if hasattr(msg, '_fieldnames'):
+                    fieldnames.extend(msg._fieldnames)
+                fieldnames = sorted(list(set(fieldnames))) # Ensure uniqueness and order
+
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames, extrasaction='ignore')
+                try:
+                    writer.writeheader()
+                except Exception as e:
+                     print(f"Error writing header to {output_csv_path}: {e}")
+                     # Attempt to continue without header? Or fail? Let's fail.
+                     return
+
+                first_message = False
+
+            # Ensure writer is initialized (should be after first message)
+            if writer is None:
+                 # This case should ideally not be reached if first_message logic is correct
+                 # and at least one message exists. If it occurs, something is wrong.
+                 print(f"Error: CSV writer not initialized for {output_csv_path}. Skipping message.")
+                 continue # Skip this message
+
+            # Create a dictionary for the row data
+            row_data = {
+                'timestamp': datetime.fromtimestamp(msg._timestamp).strftime('%Y-%m-%d %H:%M:%S.%f'),
+                'message_type': message_type,
+            }
+
+            # Add all fields from the message
+            if hasattr(msg, '_fieldnames'):
+                for fieldname in msg._fieldnames:
+                    # Use getattr for safe access
+                    row_data[fieldname] = getattr(msg, fieldname, None)
+
+            # Write message data to CSV
+            try:
                 writer.writerow(row_data)
                 extracted_count += 1
-        
-        print(f"Extracted {extracted_count} messages from {bin_file_path}")
-    
-    if extracted_count > 0:
-        print(f"Data extracted from {bin_file_path} and saved to {output_csv_path}")
-    else:
-        print(f"Warning: No data could be extracted from {bin_file_path}")
+            except Exception as e:
+                print(f"Error writing row to {output_csv_path}: {e}")
+                # Consider stopping or just reporting and continuing
+                continue
+
+        # After the loop
+        if extracted_count > 0:
+            print(f"Extracted {extracted_count} '{message_type}' messages from {bin_file_path} to {output_csv_path}")
+        else:
+            # If no messages were found, the CSV file was never opened (due to moving open inside loop)
+            # or it was opened but nothing written.
+            print(f"Warning: No '{message_type}' messages were found or extracted from {bin_file_path}.")
+            # If csvfile was opened (meaning header written) but count is 0, it's an empty file with header.
+            # If first_message is still True, the file was never opened.
+            if not first_message and extracted_count == 0 and csvfile is not None:
+                 print(f"CSV file created with only header: {output_csv_path}")
+            elif first_message:
+                 # No messages found at all, file wasn't created.
+                 pass
+
+
+    except mavutil.mavlink.MAVError as e:
+         print(f"MAVLink error processing {message_type} for {bin_file_path}: {str(e)}")
+    except Exception as e:
+        print(f"General error processing {message_type} for {bin_file_path}: {str(e)}")
+    finally:
+        # Ensure the CSV file is closed if it was opened
+        if csvfile is not None:
+            try:
+                csvfile.close()
+            except Exception as e:
+                print(f"Error closing CSV file {output_csv_path}: {e}")
+        # mlog doesn't need explicit closing
+
+# Update worker to call the new function
+def extract_message_worker(bin_file_path, csv_path, message_type):
+    """
+    Worker function for thread to extract a single message type
+    """
+    try:
+        # Call the renamed and simplified function
+        extract_single_message_type(bin_file_path, csv_path, message_type)
+    except Exception as e:
+        # Catch exceptions during the extraction process itself
+        print(f"Error in worker thread for {message_type} from {bin_file_path}: {str(e)}")
 
 def process_bin_files(file=None, message=None, logs_dir="LOGS"):
     """
     Process specified .BIN file or all files in the directory
-    
-    Args:
-        file (str): Path to a specific .BIN file (optional)
-        message (str): Message type to extract (optional)
-        logs_dir (str): Directory containing .BIN files (if file not specified)
     """
-    # Create output directory for CSV files
     csv_dir = "CSV_OUTPUT"
     os.makedirs(csv_dir, exist_ok=True)
-    
+
+    files_to_process = []
     if file:
-        # Process a single file
-        if not os.path.exists(file):
+        if os.path.exists(file):
+            files_to_process.append(file)
+        else:
             print(f"Error: File '{file}' not found")
             return
-            
-        filename = os.path.basename(file)
-        if message:
-            csv_filename = f"{os.path.splitext(filename)[0]}.{message}.csv"
-        else:
-            csv_filename = f"{os.path.splitext(filename)[0]}.csv"
-            
-        csv_path = os.path.join(csv_dir, csv_filename)
-        
-        print(f"\nProcessing {file}...")
-        try:
-            extract_messages(file, csv_path, message)
-        except Exception as e:
-            print(f"Error processing {file}: {str(e)}")
     else:
-        # Process all files in the directory
         if not os.path.exists(logs_dir):
             print(f"Error: Directory '{logs_dir}' not found")
             return
-            
-        # Process each .BIN file
         for filename in os.listdir(logs_dir):
             if filename.upper().endswith('.BIN'):
-                bin_path = os.path.join(logs_dir, filename)
-                
-                if message:
-                    csv_filename = f"{os.path.splitext(filename)[0]}.{message}.csv"
-                else:
-                    csv_filename = f"{os.path.splitext(filename)[0]}.csv"
-                    
-                csv_path = os.path.join(csv_dir, csv_filename)
-                
-                print(f"\nProcessing {bin_path}...")
-                try:
-                    extract_messages(bin_path, csv_path, message)
-                except Exception as e:
-                    print(f"Error processing {bin_path}: {str(e)}")
+                files_to_process.append(os.path.join(logs_dir, filename))
+
+    if not files_to_process:
+        print("No .BIN files found to process.")
+        return
+
+    for bin_path in files_to_process:
+        filename = os.path.basename(bin_path)
+        print(f"\nProcessing {bin_path}...")
+
+        if message:
+            # User specified a single message type
+            csv_filename = f"{os.path.splitext(filename)[0]}.{message}.csv"
+            csv_path = os.path.join(csv_dir, csv_filename)
+            try:
+                # Call the extraction function directly (no threading needed)
+                extract_single_message_type(bin_path, csv_path, message)
+            except Exception as e:
+                print(f"Error processing {message} for {bin_path}: {str(e)}")
+        else:
+            # Process all message types found in the file using threads
+            print(f"Listing message types in {bin_path}...")
+            try:
+                message_types = list_message_types(bin_path)
+                if not message_types:
+                    print(f"No relevant message types found in {bin_path}.")
+                    continue # Skip to next file
+
+                print(f"Found {len(message_types)} message types to extract: {', '.join(message_types.keys())}")
+
+                threads = []
+                for msg_type, count in message_types.items():
+                    # We already filtered unwanted types in list_message_types
+                    # if count > 0: # Check count just in case
+                    csv_filename = f"{os.path.splitext(filename)[0]}.{msg_type}.csv"
+                    csv_path = os.path.join(csv_dir, csv_filename)
+                    # print(f"Starting extraction thread for {msg_type} ({count} messages) to {csv_filename}...") # Verbose logging
+
+                    thread = threading.Thread(
+                        target=extract_message_worker,
+                        args=(bin_path, csv_path, msg_type),
+                        daemon=True # Consider making threads daemonic
+                    )
+                    threads.append(thread)
+                    thread.start()
+
+                # Wait for all threads for this file to complete
+                print(f"Waiting for {len(threads)} extraction threads to complete for {bin_path}...")
+                for thread in threads:
+                    thread.join() # Add a timeout? thread.join(timeout=300) # e.g., 5 minutes
+
+                print(f"Completed extraction of all message types from {bin_path}")
+
+            except Exception as e:
+                print(f"Error processing all message types for {bin_path}: {str(e)}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Extract message data from MAVLink binary log files")
+    parser = argparse.ArgumentParser(description="Extract message data from MAVLink binary log files (.BIN)")
     parser.add_argument("--file", help="Path to a specific .BIN file to process")
-    parser.add_argument("--message", help="Message type to extract (e.g., 'OF', 'ATTITUDE')")
-    parser.add_argument("--logs_dir", default="LOGS", help="Directory containing .BIN files (default: LOGS)")
-    
+    parser.add_argument("--message", help="Specific message type to extract (e.g., 'ATT', 'GPS', 'XKFM'). If omitted, extracts all types to separate CSVs.")
+    parser.add_argument("--logs_dir", default="LOGS", help="Directory containing .BIN files (used if --file is not specified, default: LOGS)")
+
     args = parser.parse_args()
-    
+
+    start_time = time.time()
     process_bin_files(file=args.file, message=args.message, logs_dir=args.logs_dir)
-    print("\nProcessing complete!")
+    end_time = time.time()
+    print(f"\nProcessing complete! Total time: {end_time - start_time:.2f} seconds")
