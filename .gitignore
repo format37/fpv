@@ -1,0 +1,5 @@
+archive/
+elrs/
+logging/CSV_OUTPUT/
+logging/LOGS/
+logging/__pycache__/

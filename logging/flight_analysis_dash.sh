@@ -1,19 +1,44 @@
 #!/bin/bash
 
-# Define the log number or identifier
-LOG_ID="00000053"
-CSV_DIR="CSV_OUTPUT"
-# REPORT_DIR="reports" # No longer needed for Dash app output file
-# REPORT_FILE="${REPORT_DIR}/${LOG_ID}.flight_analysis.html" # No longer needed
-
-# Ensure CSV directory exists (optional check)
-if [ ! -d "${CSV_DIR}" ]; then
-    echo "Error: CSV directory '${CSV_DIR}' not found."
+# Get date parameter
+DATE="${1}"
+if [ -z "${DATE}" ]; then
+    echo "Error: Date not provided."
+    echo "Usage: $0 <date> [log_id]"
+    echo "Example: $0 2025-04-05"
     exit 1
 fi
 
+# Set up directory paths based on date
+CSV_DIR="CSV_OUTPUT/${DATE}"
+EXTRACTED_DIR="EXTRACTED/${DATE}"
+
+# Create directories if they don't exist
+mkdir -p "${CSV_DIR}"
+mkdir -p "${EXTRACTED_DIR}"
+
+# Optional second parameter for specific log_id
+LOG_ID="${2}"
+if [ -z "${LOG_ID}" ]; then
+    # If no specific log_id is provided, we'll look in the CSV directory
+    # for available log files to get the log ID
+    
+    # Look for ATT csv files to determine available log IDs
+    ATT_FILES=$(find "${CSV_DIR}" -name "*.ATT.csv" -type f 2>/dev/null | sort)
+    if [ -z "${ATT_FILES}" ]; then
+        echo "Error: No ATT.csv files found in ${CSV_DIR}"
+        echo "Please ensure logs have been extracted and converted to CSV."
+        exit 1
+    fi
+    
+    # Use the first log ID found (or allow user to select if multiple)
+    FIRST_ATT=$(echo "${ATT_FILES}" | head -n 1)
+    LOG_ID=$(basename "${FIRST_ATT}" .ATT.csv)
+    
+    echo "Found log ID: ${LOG_ID}"
+fi
+
 # Construct the python command for the Dash app
-# Use the new script name: flight_analysis_dash.py
 PYTHON_CMD="python flight_analysis_dash.py"
 
 # Add required arguments - check if they exist
@@ -32,9 +57,6 @@ if [ ! -f "${IMU_CSV}" ]; then
 fi
 PYTHON_CMD+=" --imu-csv ${IMU_CSV}"
 
-# REMOVED: Output file argument is not used by the Dash app
-# PYTHON_CMD+=" -o ${REPORT_FILE}"
-
 # Add optional arguments if files exist
 [ -f "${CSV_DIR}/${LOG_ID}.RCIN.csv" ] && PYTHON_CMD+=" --rcin-csv ${CSV_DIR}/${LOG_ID}.RCIN.csv"
 [ -f "${CSV_DIR}/${LOG_ID}.POS.csv" ]  && PYTHON_CMD+=" --pos-csv ${CSV_DIR}/${LOG_ID}.POS.csv"
@@ -45,9 +67,6 @@ PYTHON_CMD+=" --imu-csv ${IMU_CSV}"
 [ -f "${CSV_DIR}/${LOG_ID}.BARO.csv" ] && PYTHON_CMD+=" --baro-csv ${CSV_DIR}/${LOG_ID}.BARO.csv"
 [ -f "${CSV_DIR}/${LOG_ID}.TERR.csv" ] && PYTHON_CMD+=" --terr-csv ${CSV_DIR}/${LOG_ID}.TERR.csv"
 [ -f "${CSV_DIR}/${LOG_ID}.BAT.csv" ] && PYTHON_CMD+=" --bat-csv ${CSV_DIR}/${LOG_ID}.BAT.csv"
-
-# Add optional host/port arguments if needed (example)
-# PYTHON_CMD+=" --port 8051"
 
 # Echo the command being run
 echo "Running analysis with command:"

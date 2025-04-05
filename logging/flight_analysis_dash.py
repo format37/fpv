@@ -31,7 +31,8 @@ PLOT_DEFINITIONS = {
     'alt_amsl': 'Altitude AMSL',
     'alt_agl': 'Altitude AGL',
     'speed': 'Speed',
-    'battery': 'Battery Voltage & Current'
+    'battery': 'Battery Voltage & Current',
+    'dist_home': 'Distance from Home'  # New plot type
 }
 DEFAULT_PLOTS = list(PLOT_DEFINITIONS.keys()) # Initially show all plots
 
@@ -138,14 +139,19 @@ def create_flight_figure(df_merged, loaded_optional_types, active_plots, log_ide
     if 'alt_amsl' in plot_row_map:
         row_idx = plot_row_map['alt_amsl']
         has_amsl_data = False
-        if 'POS' in loaded_optional_types and 'POS_Alt_AMSL' in df_merged.columns:
-            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['POS_Alt_AMSL'], name='Fused Alt (POS.Alt)', mode='lines', line=dict(color='purple', width=1), legendgroup='alt_amsl'), row=row_idx, col=1)
+        # Check for columns potentially renamed during merge (e.g., POS_Alt_AMSL_POS)
+        pos_alt_col = next((col for col in df_merged.columns if col.startswith('POS_Alt_AMSL')), None)
+        gps_alt_col = next((col for col in df_merged.columns if col.startswith('GPS_Alt_AMSL')), None)
+        baro_alt_col = next((col for col in df_merged.columns if col.startswith('BARO_Alt_Raw')), None)
+
+        if 'POS' in loaded_optional_types and pos_alt_col:
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged[pos_alt_col], name='Fused Alt (POS.Alt)', mode='lines', line=dict(color='purple', width=1), legendgroup='alt_amsl'), row=row_idx, col=1)
             has_amsl_data = True
-        if 'GPS' in loaded_optional_types and 'GPS_Alt_AMSL' in df_merged.columns:
-            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['GPS_Alt_AMSL'], name='GPS Alt (GPS.Alt)', mode='lines', line=dict(color='orange', dash='dot', width=1), legendgroup='alt_amsl'), row=row_idx, col=1)
+        if 'GPS' in loaded_optional_types and gps_alt_col:
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged[gps_alt_col], name='GPS Alt (GPS.Alt)', mode='lines', line=dict(color='orange', dash='dot', width=1), legendgroup='alt_amsl'), row=row_idx, col=1)
             has_amsl_data = True
-        if 'BARO' in loaded_optional_types and 'BARO_Alt_Raw' in df_merged.columns:
-            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['BARO_Alt_Raw'], name='Raw Baro Alt (BARO.Alt)', mode='lines', line=dict(color='brown', dash='dashdot', width=1), legendgroup='alt_amsl'), row=row_idx, col=1)
+        if 'BARO' in loaded_optional_types and baro_alt_col:
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged[baro_alt_col], name='Raw Baro Alt (BARO.Alt)', mode='lines', line=dict(color='brown', dash='dashdot', width=1), legendgroup='alt_amsl'), row=row_idx, col=1)
             has_amsl_data = True
         if has_amsl_data:
             fig.update_yaxes(title_text="Altitude AMSL (m)", row=row_idx, col=1)
@@ -160,27 +166,34 @@ def create_flight_figure(df_merged, loaded_optional_types, active_plots, log_ide
     if 'alt_agl' in plot_row_map:
         row_idx = plot_row_map['alt_agl']
         has_agl_data = False
-        if 'XKF5' in loaded_optional_types and 'XKF5_HAGL' in df_merged.columns:
-             fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['XKF5_HAGL'], name='Est HAGL (XKF5.HAGL)', mode='lines', line=dict(color='cyan', width=1), legendgroup='alt_agl'), row=row_idx, col=1)
+        # Check for columns potentially renamed during merge
+        xkf5_hagl_col = next((col for col in df_merged.columns if col.startswith('XKF5_HAGL')), None)
+        pos_relhome_col = next((col for col in df_merged.columns if col.startswith('POS_RelHomeAlt_AGL')), None)
+        pos_relorigin_col = next((col for col in df_merged.columns if col.startswith('POS_RelOriginAlt_AGL')), None)
+        rfnd_dist_col = next((col for col in df_merged.columns if col.startswith('RFND_Dist_AGL')), None)
+        terr_cheight_col = next((col for col in df_merged.columns if col.startswith('TERR_CHeight_AGL')), None)
+
+        if 'XKF5' in loaded_optional_types and xkf5_hagl_col:
+             fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged[xkf5_hagl_col], name='Est HAGL (XKF5.HAGL)', mode='lines', line=dict(color='cyan', width=1), legendgroup='alt_agl'), row=row_idx, col=1)
              has_agl_data = True
         # Check both RelHomeAlt and RelOriginAlt as alternatives for AGL based on POS
         rel_alt_col = None
         rel_alt_name = None
         if 'POS' in loaded_optional_types:
-            if 'POS_RelHomeAlt_AGL' in df_merged.columns:
-                rel_alt_col = 'POS_RelHomeAlt_AGL'
+            if pos_relhome_col:
+                rel_alt_col = pos_relhome_col
                 rel_alt_name = 'Rel Home Alt (POS.RelHomeAlt)'
-            elif 'POS_RelOriginAlt_AGL' in df_merged.columns:
-                rel_alt_col = 'POS_RelOriginAlt_AGL'
+            elif pos_relorigin_col:
+                rel_alt_col = pos_relorigin_col
                 rel_alt_name = 'Rel Origin Alt (POS.RelOriginAlt)'
             if rel_alt_col and rel_alt_name:
                 fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged[rel_alt_col], name=rel_alt_name, mode='lines', line=dict(color='magenta', dash='dash', width=1), legendgroup='alt_agl'), row=row_idx, col=1)
                 has_agl_data = True
-        if 'RFND' in loaded_optional_types and 'RFND_Dist_AGL' in df_merged.columns:
-            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['RFND_Dist_AGL'], name='Rangefinder (RFND.Dist)', mode='lines', line=dict(color='lime', dash='dot', width=1), legendgroup='alt_agl'), row=row_idx, col=1)
+        if 'RFND' in loaded_optional_types and rfnd_dist_col:
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged[rfnd_dist_col], name='Rangefinder (RFND.Dist)', mode='lines', line=dict(color='lime', dash='dot', width=1), legendgroup='alt_agl'), row=row_idx, col=1)
             has_agl_data = True
-        if 'TERR' in loaded_optional_types and 'TERR_CHeight_AGL' in df_merged.columns:
-            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['TERR_CHeight_AGL'], name='Terrain DB Alt (TERR.CHeight)', mode='lines', line=dict(color='gold', dash='dashdot', width=1), legendgroup='alt_agl'), row=row_idx, col=1)
+        if 'TERR' in loaded_optional_types and terr_cheight_col:
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged[terr_cheight_col], name='Terrain DB Alt (TERR.CHeight)', mode='lines', line=dict(color='gold', dash='dashdot', width=1), legendgroup='alt_agl'), row=row_idx, col=1)
             has_agl_data = True
         if has_agl_data:
             fig.update_yaxes(title_text="Altitude AGL (m)", row=row_idx, col=1)
@@ -189,18 +202,22 @@ def create_flight_figure(df_merged, loaded_optional_types, active_plots, log_ide
                                 x=0.5, y=0.5, showarrow=False, font=dict(size=14),
                                 row=row_idx, col=1)
 
+
     # Plot 8: Speed
     if 'speed' in plot_row_map:
         row_idx = plot_row_map['speed']
         has_speed_data = False
         min_time = df_merged.index.min() # Use index directly
         max_time = df_merged.index.max() # Use index directly
+        # Check for columns potentially renamed during merge
+        arsp_speed_col = next((col for col in df_merged.columns if col.startswith('ARSP_Airspeed')), None)
+        gps_speed_col = next((col for col in df_merged.columns if col.startswith('GPS_Spd_Ground')), None)
 
-        if 'ARSP' in loaded_optional_types and 'ARSP_Airspeed' in df_merged.columns:
-            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['ARSP_Airspeed'], name='Airspeed (ARSP)', mode='lines', line=dict(color='teal', width=1), legendgroup='speed'), row=row_idx, col=1)
+        if 'ARSP' in loaded_optional_types and arsp_speed_col:
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged[arsp_speed_col], name='Airspeed (ARSP)', mode='lines', line=dict(color='teal', width=1), legendgroup='speed'), row=row_idx, col=1)
             has_speed_data = True
-        if 'GPS' in loaded_optional_types and 'GPS_Spd_Ground' in df_merged.columns:
-            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['GPS_Spd_Ground'], name='Ground Speed (GPS)', mode='lines', line=dict(color='navy', dash='dash', width=1), legendgroup='speed'), row=row_idx, col=1)
+        if 'GPS' in loaded_optional_types and gps_speed_col:
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged[gps_speed_col], name='Ground Speed (GPS)', mode='lines', line=dict(color='navy', dash='dash', width=1), legendgroup='speed'), row=row_idx, col=1)
             has_speed_data = True
 
         if has_speed_data:
@@ -225,18 +242,23 @@ def create_flight_figure(df_merged, loaded_optional_types, active_plots, log_ide
                                 x=0.5, y=0.5, showarrow=False, font=dict(size=14),
                                 row=row_idx, col=1)
 
+
     # Plot 9: Battery Voltage & Current
     if 'battery' in plot_row_map:
         row_idx = plot_row_map['battery']
         has_bat_data = False
-        if bat_loaded and 'BAT_Volt' in df_merged.columns and 'BAT_Curr' in df_merged.columns:
+        # Check for columns potentially renamed during merge
+        bat_volt_col = next((col for col in df_merged.columns if col.startswith('BAT_Volt')), None)
+        bat_curr_col = next((col for col in df_merged.columns if col.startswith('BAT_Curr')), None)
+
+        if bat_loaded and bat_volt_col and bat_curr_col:
             # Plot Voltage on primary y-axis
-            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['BAT_Volt'], name='Voltage (BAT.Volt)',
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged[bat_volt_col], name='Voltage (BAT.Volt)',
                                      mode='lines', line=dict(color='goldenrod', width=1), legendgroup='battery'),
                           row=row_idx, col=1, secondary_y=False) # Explicitly primary axis
 
             # Plot Current on secondary y-axis
-            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['BAT_Curr'], name='Current (BAT.Curr)',
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged[bat_curr_col], name='Current (BAT.Curr)',
                                      mode='lines', line=dict(color='firebrick', width=1), legendgroup='battery'),
                           row=row_idx, col=1, secondary_y=True) # Explicitly secondary axis
             has_bat_data = True
@@ -253,6 +275,32 @@ def create_flight_figure(df_merged, loaded_optional_types, active_plots, log_ide
             fig.update_yaxes(visible=False, secondary_y=True, row=row_idx, col=1)
 
 
+    # --- New Plot: Distance from Home ---
+    if 'dist_home' in plot_row_map:
+        row_idx = plot_row_map['dist_home']
+        has_dist_data = False
+        # Check for the calculated column (should not have suffix from merge)
+        dist_col = 'Distance_From_Home'
+        if 'POS' in loaded_optional_types and dist_col in df_merged.columns:
+            # Check if the column actually contains non-NaN data
+            if df_merged[dist_col].notna().any():
+                fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged[dist_col],
+                                         name='Distance from Home', # Simpler name for legend
+                                         mode='lines', line=dict(color='darkcyan', width=1.5), # Adjusted color/width
+                                         legendgroup='dist_home', showlegend=True), # Show this legend item
+                              row=row_idx, col=1)
+                has_dist_data = True
+
+        if has_dist_data:
+            fig.update_yaxes(title_text="Distance (m)", row=row_idx, col=1)
+        else:
+            # Provide a more informative message if POS was loaded but distance couldn't be calculated
+            reason = "(requires POS with valid Lat/Lng)" if 'POS' in loaded_optional_types else "(requires POS data)"
+            fig.add_annotation(text=f"No Distance from Home data {reason}",
+                               xref="paper", yref="paper",
+                               x=0.5, y=0.5, showarrow=False, font=dict(size=14),
+                               row=row_idx, col=1)
+
     # --- Update Layout ---
     plot_title = f'Flight Analysis: {log_identifier}'
     fig.update_layout(
@@ -266,6 +314,7 @@ def create_flight_figure(df_merged, loaded_optional_types, active_plots, log_ide
 
     # Update x-axis title on the bottom-most plot
     fig.update_xaxes(title_text="Timestamp", row=num_rows, col=1)
+
 
     return fig # Return the figure object
 
@@ -283,14 +332,16 @@ def create_notes_section(loaded_optional_types):
         ])
 
     notes_list.extend([
-        html.H3("--- Altitude Notes ---", style={'margin-top': '20px'}),
+        html.H3("--- Altitude & Distance Notes ---", style={'margin-top': '20px'}), # Updated Title
         html.P("AMSL = Above Mean Sea Level, AGL = Above Ground Level (estimated or measured)"),
         html.P("POS.Alt = Fused Altitude (EKF), GPS.Alt = Raw GPS Altitude"),
         html.P("XKF5.HAGL = EKF Height Above Ground Estimate"),
-        html.P("POS.RelHomeAlt/RelOriginAlt = Altitude relative to takeoff point"),
-        html.P("RFND.Dist = Raw Rangefinder distance"),
-        html.P("BARO.Alt = Raw Barometer altitude (can drift with temperature)"),
-        html.P("TERR.CHeight = Altitude relative to terrain database"),
+        html.P("POS.RelHomeAlt/RelOriginAlt = Altitude relative to takeoff point (AGL)"), # Clarified AGL
+        html.P("RFND.Dist = Raw Rangefinder distance (AGL)"), # Clarified AGL
+        html.P("BARO.Alt = Raw Barometer altitude (can drift with temperature, relative to power-on)"), # Added context
+        html.P("TERR.CHeight = Altitude relative to terrain database (AGL)"), # Clarified AGL
+        # Add note for Distance from Home
+        html.P("Distance from Home = Horizontal distance calculated from first valid POS Lat/Lng (meters)."),
         html.Hr()
     ])
 
