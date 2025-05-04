@@ -13,6 +13,8 @@ RC_OPTIONS,255,Telemetry for Yaapu script
 SERIAL2_BAUD,115.0,Rangefinder TX1 RX1
 SERIAL2_PROTOCOL,32.0,Rangefinder MCP
 RNGFND1_TYPE,32.0,Rangefinder
+RNGFND_LANDING,1,Rangefinder
+RNGFND1_MAX_CM,120,Rangefinder
 FLOW_TYPE,7,Rangefinder
 FLOW_FXSCALER,-800,Rangefinder
 FLOW_FYSCALER,-800,Rangefinder
