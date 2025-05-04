@@ -550,6 +550,7 @@ if __name__ == "__main__":
     @callback(
         Output('download-graph-html', 'data'),
         Input('export-button', 'n_clicks'),
+        State('flight-graph', 'relayoutData'),  # <-- now a State again
         State('plot-checklist', 'value'),
         State('height-slider', 'value'),
         State('stall-speed-input', 'value'),
@@ -558,7 +559,7 @@ if __name__ == "__main__":
         State('log-identifier-store', 'data'),
         prevent_initial_call=True # Don't run this callback when the app starts
     )
-    def export_graph_html(n_clicks, selected_plots, graph_height, stall_speed, stored_data, stored_loaded_opts, log_id):
+    def export_graph_html(n_clicks, relayout_data, selected_plots, graph_height, stall_speed, stored_data, stored_loaded_opts, log_id):
         if stored_data is None:
             return no_update # Or potentially send a notification if you add a notification component
 
@@ -570,6 +571,19 @@ if __name__ == "__main__":
         df.set_index('timestamp', inplace=True)
         df.sort_index(inplace=True) # Ensure sorted index
         loaded_opts_list = json.loads(stored_loaded_opts)
+
+        # --- Filter by x-axis range if set in relayoutData ---
+        if relayout_data is not None:
+            x_range = None
+            # Plotly sometimes uses 'xaxis.range' or 'xaxis.range[0]'/'xaxis.range[1]'
+            if 'xaxis.range' in relayout_data:
+                x_range = relayout_data['xaxis.range']
+            elif 'xaxis.range[0]' in relayout_data and 'xaxis.range[1]' in relayout_data:
+                x_range = [relayout_data['xaxis.range[0]'], relayout_data['xaxis.range[1]']]
+            if x_range:
+                # Convert to pandas Timestamp for filtering
+                start, end = pd.to_datetime(x_range[0]), pd.to_datetime(x_range[1])
+                df = df[(df.index >= start) & (df.index <= end)]
 
         # Create the figure using the current settings
         fig = create_flight_figure(df, loaded_opts_list, selected_plots, log_id, stall_speed)

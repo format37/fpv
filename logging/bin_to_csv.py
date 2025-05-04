@@ -248,6 +248,20 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    # Check if required parameters are provided
+    if not args.file and not args.logs_dir:
+        print("Error: Either --file or --logs_dir must be specified.")
+        parser.print_help()
+        exit(1)
+        
+    # Validate that the specified file or directory exists
+    if args.file and not os.path.isfile(args.file):
+        print(f"Error: Specified file '{args.file}' does not exist.")
+        exit(1)
+    elif args.logs_dir and not os.path.isdir(args.logs_dir):
+        print(f"Error: Specified logs directory '{args.logs_dir}' does not exist.")
+        exit(1)
+
     start_time = time.time()
     process_bin_files(file=args.file, message=args.message, logs_dir=args.logs_dir)
     end_time = time.time()
