@@ -27,7 +27,9 @@ OPTIONAL_COLS_TO_SELECT = {
     'RFND': {'timestamp': 'timestamp', 'Dist': 'RFND_Dist_AGL'},
     'BARO': {'timestamp': 'timestamp', 'Alt': 'BARO_Alt_Raw'},
     'TERR': {'timestamp': 'timestamp', 'CHeight': 'TERR_CHeight_AGL'},
-    'BAT': {'timestamp': 'timestamp', 'Volt': 'BAT_Volt', 'Curr': 'BAT_Curr'}
+    'BAT': {'timestamp': 'timestamp', 'Volt': 'BAT_Volt', 'Curr': 'BAT_Curr'},
+    'PIDP': {'timestamp': 'timestamp', 'Act': 'PIDP_Act', 'Tar': 'PIDP_Tar', 'P': 'PIDP_P', 'I': 'PIDP_I', 'D': 'PIDP_D', 'Err': 'PIDP_Err'},
+    'PIDR': {'timestamp': 'timestamp', 'Act': 'PIDR_Act', 'Tar': 'PIDR_Tar', 'P': 'PIDR_P', 'I': 'PIDR_I', 'D': 'PIDR_D', 'Err': 'PIDR_Err'},
 }
 
 # --- Helper Function for Loading Data ---

@@ -67,6 +67,8 @@ PYTHON_CMD+=" --imu-csv ${IMU_CSV}"
 [ -f "${CSV_DIR}/${LOG_ID}.BARO.csv" ] && PYTHON_CMD+=" --baro-csv ${CSV_DIR}/${LOG_ID}.BARO.csv"
 [ -f "${CSV_DIR}/${LOG_ID}.TERR.csv" ] && PYTHON_CMD+=" --terr-csv ${CSV_DIR}/${LOG_ID}.TERR.csv"
 [ -f "${CSV_DIR}/${LOG_ID}.BAT.csv" ] && PYTHON_CMD+=" --bat-csv ${CSV_DIR}/${LOG_ID}.BAT.csv"
+[ -f "${CSV_DIR}/${LOG_ID}.PIDP.csv" ] && PYTHON_CMD+=" --pidp-csv ${CSV_DIR}/${LOG_ID}.PIDP.csv"
+[ -f "${CSV_DIR}/${LOG_ID}.PIDR.csv" ] && PYTHON_CMD+=" --pidr-csv ${CSV_DIR}/${LOG_ID}.PIDR.csv"
 
 # Echo the command being run
 echo "Running analysis with command:"

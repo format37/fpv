@@ -32,7 +32,9 @@ PLOT_DEFINITIONS = {
     'alt_agl': 'Altitude AGL',
     'speed': 'Speed',
     'battery': 'Battery Voltage & Current',
-    'dist_home': 'Distance from Home'  # New plot type
+    'dist_home': 'Distance from Home',  # New plot type
+    'pidp': 'Pitch PID Output',         # New
+    'pidr': 'Roll PID Output'           # New
 }
 DEFAULT_PLOTS = list(PLOT_DEFINITIONS.keys()) # Initially show all plots
 
@@ -301,6 +303,52 @@ def create_flight_figure(df_merged, loaded_optional_types, active_plots, log_ide
                                x=0.5, y=0.5, showarrow=False, font=dict(size=14),
                                row=row_idx, col=1)
 
+    # --- New Plot: Pitch PID Output ---
+    if 'pidp' in plot_row_map:
+        row_idx = plot_row_map['pidp']
+        has_pidp = False
+        # Plot Act (actual output to servo), Tar (target), and optionally P/I/D/Effort
+        if 'PIDP_Act' in df_merged.columns:
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['PIDP_Act'], name='PIDP Actual Output', mode='lines', line=dict(color='blue', width=1), legendgroup='pidp'), row=row_idx, col=1)
+            has_pidp = True
+        if 'PIDP_Tar' in df_merged.columns:
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['PIDP_Tar'], name='PIDP Target', mode='lines', line=dict(color='red', dash='dash', width=1), legendgroup='pidp'), row=row_idx, col=1)
+            has_pidp = True
+        if 'PIDP_P' in df_merged.columns:
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['PIDP_P'], name='PIDP P', mode='lines', line=dict(color='green', dash='dot', width=1), legendgroup='pidp'), row=row_idx, col=1)
+        if 'PIDP_I' in df_merged.columns:
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['PIDP_I'], name='PIDP I', mode='lines', line=dict(color='orange', dash='dot', width=1), legendgroup='pidp'), row=row_idx, col=1)
+        if 'PIDP_D' in df_merged.columns:
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['PIDP_D'], name='PIDP D', mode='lines', line=dict(color='purple', dash='dot', width=1), legendgroup='pidp'), row=row_idx, col=1)
+        if 'PIDP_Err' in df_merged.columns:
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['PIDP_Err'], name='PIDP Error', mode='lines', line=dict(color='brown', dash='dash', width=1), legendgroup='pidp'), row=row_idx, col=1)
+        if has_pidp:
+            fig.update_yaxes(title_text="PIDP Output", row=row_idx, col=1)
+        else:
+            fig.add_annotation(text="No PIDP data loaded", xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False, font=dict(size=14), row=row_idx, col=1)
+    # --- New Plot: Roll PID Output ---
+    if 'pidr' in plot_row_map:
+        row_idx = plot_row_map['pidr']
+        has_pidr = False
+        if 'PIDR_Act' in df_merged.columns:
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['PIDR_Act'], name='PIDR Actual Output', mode='lines', line=dict(color='blue', width=1), legendgroup='pidr'), row=row_idx, col=1)
+            has_pidr = True
+        if 'PIDR_Tar' in df_merged.columns:
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['PIDR_Tar'], name='PIDR Target', mode='lines', line=dict(color='red', dash='dash', width=1), legendgroup='pidr'), row=row_idx, col=1)
+            has_pidr = True
+        if 'PIDR_P' in df_merged.columns:
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['PIDR_P'], name='PIDR P', mode='lines', line=dict(color='green', dash='dot', width=1), legendgroup='pidr'), row=row_idx, col=1)
+        if 'PIDR_I' in df_merged.columns:
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['PIDR_I'], name='PIDR I', mode='lines', line=dict(color='orange', dash='dot', width=1), legendgroup='pidr'), row=row_idx, col=1)
+        if 'PIDR_D' in df_merged.columns:
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['PIDR_D'], name='PIDR D', mode='lines', line=dict(color='purple', dash='dot', width=1), legendgroup='pidr'), row=row_idx, col=1)
+        if 'PIDR_Err' in df_merged.columns:
+            fig.add_trace(go.Scatter(x=df_merged.index, y=df_merged['PIDR_Err'], name='PIDR Error', mode='lines', line=dict(color='brown', dash='dash', width=1), legendgroup='pidr'), row=row_idx, col=1)
+        if has_pidr:
+            fig.update_yaxes(title_text="PIDR Output", row=row_idx, col=1)
+        else:
+            fig.add_annotation(text="No PIDR data loaded", xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False, font=dict(size=14), row=row_idx, col=1)
+
     # --- Update Layout ---
     plot_title = f'Flight Analysis: {log_identifier}'
     fig.update_layout(
@@ -375,6 +423,8 @@ if __name__ == "__main__":
     parser.add_argument("--baro-csv", help="Path to the input BARO CSV file (e.g., CSV_OUTPUT/log.BARO.csv)")
     parser.add_argument("--terr-csv", help="Path to the input TERR CSV file (e.g., CSV_OUTPUT/log.TERR.csv)")
     parser.add_argument("--bat-csv", help="Path to the input BAT CSV file (e.g., CSV_OUTPUT/log.BAT.csv)")
+    parser.add_argument("--pidp-csv", help="Path to the input PIDP CSV file (e.g., CSV_OUTPUT/log.PIDP.csv)")
+    parser.add_argument("--pidr-csv", help="Path to the input PIDR CSV file (e.g., CSV_OUTPUT/log.PIDR.csv)")
 
     # Dash specific arguments
     parser.add_argument("--host", default="127.0.0.1", help="Host address to run the Dash server on.")
@@ -395,7 +445,9 @@ if __name__ == "__main__":
         'RFND': args.rfnd_csv,
         'BARO': args.baro_csv,
         'TERR': args.terr_csv,
-        'BAT': args.bat_csv
+        'BAT': args.bat_csv,
+        'PIDP': args.pidp_csv,   # New
+        'PIDR': args.pidr_csv    # New
     }
     # Filter out None values before passing to function
     csv_files_provided = {k: v for k, v in csv_files.items() if v is not None}

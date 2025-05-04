@@ -49,7 +49,9 @@ $optionalFiles = @(
     @{Name='RFND'; Arg='--rfnd-csv'},
     @{Name='BARO'; Arg='--baro-csv'},
     @{Name='TERR'; Arg='--terr-csv'},
-    @{Name='BAT';  Arg='--bat-csv'}
+    @{Name='BAT';  Arg='--bat-csv'},
+    @{Name='PIDP'; Arg='--pidp-csv'},
+    @{Name='PIDR'; Arg='--pidr-csv'}
 )
 foreach ($file in $optionalFiles) {
     $csvPath = "$CsvDir/$LogId.$($file.Name).csv"
@@ -63,14 +65,9 @@ Write-Host "Running analysis with command:"
 Write-Host $PythonCmd
 Write-Host ""
 
-# Execute the command
-# Use Start-Process with -Wait to allow CTRL+C to stop the Python server
-try {
-    $PythonArgs = @("flight_analysis_dash.py", "--att-csv", $AttCsv, "--imu-csv", $ImuCsv)
-    # Add optional arguments as needed
-    # ...
-    & python @PythonArgs
-} catch {
-    Write-Host "\nFailed to execute the Python script."
-    exit 1
-} 
+# Actually run the full command string with all arguments
+Invoke-Expression $PythonCmd
+
+# This part will only be reached if execution fails
+Write-Host "\nFailed to execute the Python script."
+exit 1 
