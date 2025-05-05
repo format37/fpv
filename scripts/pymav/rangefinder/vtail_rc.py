@@ -29,10 +29,9 @@ def send_rc_override(connection, ch2_value):
     )
 
 def main():
+    # Establish connection
+    vehicle = connect_to_vehicle('/dev/ttyACM0', 1500000)
     try:
-        # Establish connection
-        vehicle = connect_to_vehicle('COM4', 1500000)
-
         # Sinusoid parameters
         amplitude = 300  # PWM amplitude (±300 from center)
         center_pwm = 1500  # Neutral PWM value for CH2
