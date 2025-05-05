@@ -30,7 +30,14 @@ def send_rc_override(connection, ch2_value):
 
 def main():
     # Establish connection
-    vehicle = connect_to_vehicle('/dev/ttyACM0', 1500000)
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Send sinusoidal RC override to CH2 for elevon control.")
+    parser.add_argument('--port', type=str, default='/dev/ttyACM0', help='Serial port to connect to (default: /dev/ttyACM0)')
+    parser.add_argument('--baud', type=int, default=1500000, help='Baud rate for serial connection (default: 1500000)')
+    args = parser.parse_args()
+
+    vehicle = connect_to_vehicle(args.port, args.baud)
     try:
         # Sinusoid parameters
         amplitude = 300  # PWM amplitude (±300 from center)
