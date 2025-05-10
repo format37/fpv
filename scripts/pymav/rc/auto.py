@@ -88,6 +88,9 @@ def main():
                 rangefinder_freq = rangefinder_count / (now - last_rangefinder_time)
                 rangefinder_count = 0
                 last_rangefinder_time = now
+            if msg.distance == 0:
+                print(f"\rInvalid RANGEFINDER value (0). Skipping. | Loop Hz: {loop_freq:.1f} | RF Hz: {rangefinder_freq:.1f}   ", end="")
+                continue
             current_height = msg.distance
             error = goal_height - current_height
             control = kp * error
