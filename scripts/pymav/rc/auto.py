@@ -53,8 +53,8 @@ def main():
     request_data_streams(vehicle)
 
     center_pwm = 1500  # Neutral PWM value for CH2
-    min_pwm = 1000
-    max_pwm = 2000
+    min_pwm = 989
+    max_pwm = 2013
     goal_height = args.goal
     kp = args.kp
 
@@ -94,8 +94,8 @@ def main():
             current_height = msg.distance
             error = goal_height - current_height
             control = kp * error
-            ch2_pwm = int(center_pwm + control) # Reversed
-            # ch2_pwm = int(center_pwm - control)
+            # ch2_pwm = int(center_pwm + control) # Reversed
+            ch2_pwm = int(center_pwm - control)
             ch2_pwm = max(min_pwm, min(max_pwm, ch2_pwm))
             send_rc_override(vehicle, ch2_pwm)
             print(f"\rHeight: {current_height:.2f} m | Error: {error:.2f} | CH2 PWM: {ch2_pwm} | Loop Hz: {loop_freq:.1f} | RF Hz: {rangefinder_freq:.1f}   ", end="")
