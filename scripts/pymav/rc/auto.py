@@ -72,9 +72,6 @@ def main():
         while True:
             loop_start = time.time()
             msg = vehicle.recv_match(type='RANGEFINDER', blocking=True, timeout=1)
-            # Try to get the latest VFR_HUD message (airspeed), non-blocking
-            airspeed_msg = vehicle.recv_match(type='VFR_HUD', blocking=False)
-            airspeed = airspeed_msg.airspeed if airspeed_msg is not None else None
             loop_count += 1
             now = time.time()
             # Update loop frequency every second
@@ -83,7 +80,7 @@ def main():
                 loop_count = 0
                 last_loop_time = now
             if msg is None:
-                print(f"\rNo RANGEFINDER data received. | Loop Hz: {loop_freq:.1f} | RF Hz: {rangefinder_freq:.1f} | Airspeed: {'N/A' if airspeed is None else f'{airspeed:.2f} m/s'}   ", end="")
+                print(f"\rNo RANGEFINDER data received. | Loop Hz: {loop_freq:.1f} | RF Hz: {rangefinder_freq:.1f}   ", end="")
                 continue
             rangefinder_count += 1
             # Update rangefinder frequency every second
@@ -92,7 +89,7 @@ def main():
                 rangefinder_count = 0
                 last_rangefinder_time = now
             if msg.distance == 0:
-                print(f"\rInvalid RANGEFINDER value (0). Skipping. | Loop Hz: {loop_freq:.1f} | RF Hz: {rangefinder_freq:.1f} | Airspeed: {'N/A' if airspeed is None else f'{airspeed:.2f} m/s'}   ", end="")
+                print(f"\rInvalid RANGEFINDER value (0). Skipping. | Loop Hz: {loop_freq:.1f} | RF Hz: {rangefinder_freq:.1f}   ", end="")
                 continue
             current_height = msg.distance
             error = goal_height - current_height
@@ -101,7 +98,7 @@ def main():
             ch2_pwm = int(center_pwm - control)
             ch2_pwm = max(min_pwm, min(max_pwm, ch2_pwm))
             send_rc_override(vehicle, ch2_pwm)
-            print(f"\rHeight: {current_height:.2f} m | Error: {error:.2f} | CH2 PWM: {ch2_pwm} | Loop Hz: {loop_freq:.1f} | RF Hz: {rangefinder_freq:.1f} | Airspeed: {'N/A' if airspeed is None else f'{airspeed:.2f} m/s'}   ", end="")
+            print(f"\rHeight: {current_height:.2f} m | Error: {error:.2f} | CH2 PWM: {ch2_pwm} | Loop Hz: {loop_freq:.1f} | RF Hz: {rangefinder_freq:.1f}   ", end="")
             # time.sleep(0.05)
     except KeyboardInterrupt:
         print("\nProgram interrupted by user. Sending neutral RC override and closing connection...")
