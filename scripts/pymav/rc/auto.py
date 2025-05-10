@@ -16,7 +16,7 @@ def request_data_streams(connection):
         connection.target_system,
         connection.target_component,
         mavutil.mavlink.MAV_DATA_STREAM_ALL,
-        10,  # Rate in Hz
+        20,  # Rate in Hz
         1    # Start streaming
     )
 
