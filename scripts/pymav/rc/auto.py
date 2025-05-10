@@ -16,7 +16,7 @@ def request_data_streams(connection):
         connection.target_system,
         connection.target_component,
         mavutil.mavlink.MAV_DATA_STREAM_ALL,
-        20,  # Rate in Hz
+        10,  # Rate in Hz
         1    # Start streaming
     )
 
@@ -45,8 +45,8 @@ def main():
     parser = argparse.ArgumentParser(description="Auto height control using rangefinder and vtail elevons (CH2).")
     parser.add_argument('--port', type=str, default='/dev/ttyS0', help='Serial port to connect to (default: /dev/ttyS0)')
     parser.add_argument('--baud', type=int, default=1500000, help='Baud rate for serial connection (default: 1500000)')
-    parser.add_argument('--goal', type=float, default=0.5, help='Goal height in meters (default: 1.0)')
-    parser.add_argument('--kp', type=float, default=400.0, help='Proportional gain for controller (default: 400.0)')
+    parser.add_argument('--goal', type=float, default=1, help='Goal height in meters (default: 1.0)')
+    parser.add_argument('--kp', type=float, default=500.0, help='Proportional gain for controller (default: 400.0)')
     args = parser.parse_args()
 
     vehicle = connect_to_vehicle(args.port, args.baud)
