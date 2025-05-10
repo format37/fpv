@@ -42,7 +42,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Auto height control using rangefinder and vtail elevons (CH2).")
-    parser.add_argument('--port', type=str, default='/dev/ttyACM0', help='Serial port to connect to (default: /dev/ttyACM0)')
+    parser.add_argument('--port', type=str, default='/dev/ttyS0', help='Serial port to connect to (default: /dev/ttyS0)')
     parser.add_argument('--baud', type=int, default=1500000, help='Baud rate for serial connection (default: 1500000)')
     parser.add_argument('--goal', type=float, default=1.0, help='Goal height in meters (default: 1.0)')
     parser.add_argument('--kp', type=float, default=400.0, help='Proportional gain for controller (default: 400.0)')
