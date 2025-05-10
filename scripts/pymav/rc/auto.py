@@ -1,6 +1,7 @@
 import time
 import math
 from pymavlink import mavutil
+import time
 
 def connect_to_vehicle(port='COM4', baud=1500000):
     print(f"Connecting to vehicle on {port} at {baud} baud...")
@@ -59,12 +60,34 @@ def main():
 
     print(f"Auto height control started. Goal: {goal_height} m. Press Ctrl+C to stop.")
 
+    # Frequency metrics
+    loop_count = 0
+    rangefinder_count = 0
+    last_rangefinder_time = time.time()
+    last_loop_time = time.time()
+    loop_freq = 0.0
+    rangefinder_freq = 0.0
+
     try:
         while True:
+            loop_start = time.time()
             msg = vehicle.recv_match(type='RANGEFINDER', blocking=True, timeout=1)
+            loop_count += 1
+            now = time.time()
+            # Update loop frequency every second
+            if now - last_loop_time >= 1.0:
+                loop_freq = loop_count / (now - last_loop_time)
+                loop_count = 0
+                last_loop_time = now
             if msg is None:
-                print("No RANGEFINDER data received.")
+                print(f"\rNo RANGEFINDER data received. | Loop Hz: {loop_freq:.1f} | RF Hz: {rangefinder_freq:.1f}   ", end="")
                 continue
+            rangefinder_count += 1
+            # Update rangefinder frequency every second
+            if now - last_rangefinder_time >= 1.0:
+                rangefinder_freq = rangefinder_count / (now - last_rangefinder_time)
+                rangefinder_count = 0
+                last_rangefinder_time = now
             current_height = msg.distance
             error = goal_height - current_height
             control = kp * error
@@ -72,7 +95,7 @@ def main():
             # ch2_pwm = int(center_pwm - control)
             ch2_pwm = max(min_pwm, min(max_pwm, ch2_pwm))
             send_rc_override(vehicle, ch2_pwm)
-            print(f"\rHeight: {current_height:.2f} m | Error: {error:.2f} | CH2 PWM: {ch2_pwm}", end="")
+            print(f"\rHeight: {current_height:.2f} m | Error: {error:.2f} | CH2 PWM: {ch2_pwm} | Loop Hz: {loop_freq:.1f} | RF Hz: {rangefinder_freq:.1f}   ", end="")
             # time.sleep(0.05)
     except KeyboardInterrupt:
         print("\nProgram interrupted by user. Sending neutral RC override and closing connection...")
