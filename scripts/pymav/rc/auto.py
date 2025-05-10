@@ -68,7 +68,7 @@ def main():
             current_height = msg.distance
             error = goal_height - current_height
             control = kp * error
-            ch2_pwm = int(center_pwm + control)
+            ch2_pwm = int(center_pwm - control)
             ch2_pwm = max(min_pwm, min(max_pwm, ch2_pwm))
             send_rc_override(vehicle, ch2_pwm)
             print(f"\rHeight: {current_height:.2f} m | Error: {error:.2f} | CH2 PWM: {ch2_pwm}", end="")
