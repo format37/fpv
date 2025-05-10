@@ -29,13 +29,17 @@ def main():
 
         print("Reading IMU data... (Press Ctrl+C to stop)")
 
-        # Initialize tqdm bars for accelerometer and gyroscope (assuming reasonable ranges)
-        accelx_bar = tqdm(total=20, desc='Accel X (m/s²)', position=0, leave=True, bar_format='{l_bar}{bar}| {n:.2f}/{total} m/s²')
-        accely_bar = tqdm(total=20, desc='Accel Y (m/s²)', position=1, leave=True, bar_format='{l_bar}{bar}| {n:.2f}/{total} m/s²')
-        accelz_bar = tqdm(total=20, desc='Accel Z (m/s²)', position=2, leave=True, bar_format='{l_bar}{bar}| {n:.2f}/{total} m/s²')
-        gyrox_bar = tqdm(total=5, desc='Gyro X (rad/s)', position=3, leave=True, bar_format='{l_bar}{bar}| {n:.2f}/{total} rad/s')
-        gyroy_bar = tqdm(total=5, desc='Gyro Y (rad/s)', position=4, leave=True, bar_format='{l_bar}{bar}| {n:.2f}/{total} rad/s')
-        gyroz_bar = tqdm(total=5, desc='Gyro Z (rad/s)', position=5, leave=True, bar_format='{l_bar}{bar}| {n:.2f}/{total} rad/s')
+        # Initialize tqdm bars for accelerometer and gyroscope (centered at zero)
+        accel_min, accel_max = -20, 20  # m/s²
+        gyro_min, gyro_max = -5, 5      # rad/s
+        accel_range = accel_max - accel_min
+        gyro_range = gyro_max - gyro_min
+        accelx_bar = tqdm(total=accel_range, desc='Accel X (m/s²)', position=0, leave=True, bar_format='{l_bar}{bar}| {n:.2f}/{total} m/s²', initial=-accel_min)
+        accely_bar = tqdm(total=accel_range, desc='Accel Y (m/s²)', position=1, leave=True, bar_format='{l_bar}{bar}| {n:.2f}/{total} m/s²', initial=-accel_min)
+        accelz_bar = tqdm(total=accel_range, desc='Accel Z (m/s²)', position=2, leave=True, bar_format='{l_bar}{bar}| {n:.2f}/{total} m/s²', initial=-accel_min)
+        gyrox_bar = tqdm(total=gyro_range, desc='Gyro X (rad/s)', position=3, leave=True, bar_format='{l_bar}{bar}| {n:.2f}/{total} rad/s', initial=-gyro_min)
+        gyroy_bar = tqdm(total=gyro_range, desc='Gyro Y (rad/s)', position=4, leave=True, bar_format='{l_bar}{bar}| {n:.2f}/{total} rad/s', initial=-gyro_min)
+        gyroz_bar = tqdm(total=gyro_range, desc='Gyro Z (rad/s)', position=5, leave=True, bar_format='{l_bar}{bar}| {n:.2f}/{total} rad/s', initial=-gyro_min)
 
         # Store last values to avoid unnecessary tqdm updates
         last_accelx = None
@@ -62,31 +66,31 @@ def main():
                 gyro_y = msg.ygyro / 1000.0  # Convert milli-rad/s to rad/s
                 gyro_z = msg.zgyro / 1000.0  # Convert milli-rad/s to rad/s
 
-                # Clamp and update tqdm for accelerometer
+                # Clamp and update tqdm for accelerometer (centered at zero)
                 if last_accelx != accel_x:
-                    accelx_bar.n = min(max(accel_x, -accelx_bar.total), accelx_bar.total)
+                    accelx_bar.n = min(max(accel_x, accel_min), accel_max) - accel_min
                     accelx_bar.refresh()
                     last_accelx = accel_x
                 if last_accely != accel_y:
-                    accely_bar.n = min(max(accel_y, -accely_bar.total), accely_bar.total)
+                    accely_bar.n = min(max(accel_y, accel_min), accel_max) - accel_min
                     accely_bar.refresh()
                     last_accely = accel_y
                 if last_accelz != accel_z:
-                    accelz_bar.n = min(max(accel_z, -accelz_bar.total), accelz_bar.total)
+                    accelz_bar.n = min(max(accel_z, accel_min), accel_max) - accel_min
                     accelz_bar.refresh()
                     last_accelz = accel_z
 
-                # Clamp and update tqdm for gyroscope
+                # Clamp and update tqdm for gyroscope (centered at zero)
                 if last_gyrox != gyro_x:
-                    gyrox_bar.n = min(max(gyro_x, -gyrox_bar.total), gyrox_bar.total)
+                    gyrox_bar.n = min(max(gyro_x, gyro_min), gyro_max) - gyro_min
                     gyrox_bar.refresh()
                     last_gyrox = gyro_x
                 if last_gyroy != gyro_y:
-                    gyroy_bar.n = min(max(gyro_y, -gyroy_bar.total), gyroy_bar.total)
+                    gyroy_bar.n = min(max(gyro_y, gyro_min), gyro_max) - gyro_min
                     gyroy_bar.refresh()
                     last_gyroy = gyro_y
                 if last_gyroz != gyro_z:
-                    gyroz_bar.n = min(max(gyro_z, -gyroz_bar.total), gyroz_bar.total)
+                    gyroz_bar.n = min(max(gyro_z, gyro_min), gyro_max) - gyro_min
                     gyroz_bar.refresh()
                     last_gyroz = gyro_z
 
