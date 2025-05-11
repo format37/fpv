@@ -6,7 +6,7 @@ import os
 import numpy as np
 
 # --- Constants and Column Definitions ---
-MIN_ROWS_THRESHOLD = 10 # Minimum number of rows to consider a CSV useful
+MIN_ROWS_THRESHOLD = 2 # Minimum number of rows to consider a CSV useful
 
 # Define required columns for each message type
 REQUIRED_COLS = {
@@ -30,6 +30,7 @@ OPTIONAL_COLS_TO_SELECT = {
     'BAT': {'timestamp': 'timestamp', 'Volt': 'BAT_Volt', 'Curr': 'BAT_Curr'},
     'PIDP': {'timestamp': 'timestamp', 'Act': 'PIDP_Act', 'Tar': 'PIDP_Tar', 'P': 'PIDP_P', 'I': 'PIDP_I', 'D': 'PIDP_D', 'Err': 'PIDP_Err'},
     'PIDR': {'timestamp': 'timestamp', 'Act': 'PIDR_Act', 'Tar': 'PIDR_Tar', 'P': 'PIDR_P', 'I': 'PIDR_I', 'D': 'PIDR_D', 'Err': 'PIDR_Err'},
+    'MODE': {'timestamp': 'timestamp', 'ModeNum': 'ModeNum'}
 }
 
 # --- Helper Function for Loading Data ---

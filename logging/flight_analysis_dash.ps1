@@ -51,7 +51,8 @@ $optionalFiles = @(
     @{Name='TERR'; Arg='--terr-csv'},
     @{Name='BAT';  Arg='--bat-csv'},
     @{Name='PIDP'; Arg='--pidp-csv'},
-    @{Name='PIDR'; Arg='--pidr-csv'}
+    @{Name='PIDR'; Arg='--pidr-csv'},
+    @{Name='MODE'; Arg='--mode-csv'}
 )
 foreach ($file in $optionalFiles) {
     $csvPath = "$CsvDir/$LogId.$($file.Name).csv"

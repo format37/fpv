@@ -1,0 +1,31 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Current File with Arguments",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--att-csv", "C:/Users/alex/OneDrive/Documents/fpv/fpv/logging/CSV_OUTPUT/00000012.ATT.csv",
+                "--imu-csv", "C:/Users/alex/OneDrive/Documents/fpv/fpv/logging/CSV_OUTPUT/00000012.IMU.csv",
+                "--rcin-csv", "C:/Users/alex/OneDrive/Documents/fpv/fpv/logging/CSV_OUTPUT/00000012.RCIN.csv",
+                "--pos-csv", "C:/Users/alex/OneDrive/Documents/fpv/fpv/logging/CSV_OUTPUT/00000012.POS.csv",
+                "--gps-csv", "C:/Users/alex/OneDrive/Documents/fpv/fpv/logging/CSV_OUTPUT/00000012.GPS.csv",
+                "--arsp-csv", "C:/Users/alex/OneDrive/Documents/fpv/fpv/logging/CSV_OUTPUT/00000012.ARSP.csv",
+                "--xkf5-csv", "C:/Users/alex/OneDrive/Documents/fpv/fpv/logging/CSV_OUTPUT/00000012.XKF5.csv",
+                "--rfnd-csv", "C:/Users/alex/OneDrive/Documents/fpv/fpv/logging/CSV_OUTPUT/00000012.RFND.csv",
+                "--baro-csv", "C:/Users/alex/OneDrive/Documents/fpv/fpv/logging/CSV_OUTPUT/00000012.BARO.csv",
+                "--terr-csv", "C:/Users/alex/OneDrive/Documents/fpv/fpv/logging/CSV_OUTPUT/00000012.TERR.csv",
+                "--bat-csv", "C:/Users/alex/OneDrive/Documents/fpv/fpv/logging/CSV_OUTPUT/00000012.BAT.csv",
+                "--pidp-csv", "C:/Users/alex/OneDrive/Documents/fpv/fpv/logging/CSV_OUTPUT/00000012.PIDP.csv",
+                "--pidr-csv", "C:/Users/alex/OneDrive/Documents/fpv/fpv/logging/CSV_OUTPUT/00000012.PIDR.csv",
+                "--mode-csv", "C:/Users/alex/OneDrive/Documents/fpv/fpv/logging/CSV_OUTPUT/00000012.MODE.csv"
+            ]
+        }
+    ]
+}

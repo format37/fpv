@@ -30,7 +30,7 @@ def list_message_types(bin_file_path):
                 break # End of file
 
             msg_type = msg.get_type()
-            if msg_type not in ['FMT', 'FMTU', 'MULT', 'PARM', 'MSG', 'MODE', 'EV', 'UNIT', 'XKF0']: # Exclude format/metadata types if desired
+            if msg_type not in ['FMT', 'FMTU', 'MULT', 'PARM', 'EV', 'XKF0']: # Exclude format/metadata types if desired
                  if msg_type in msg_types:
                      msg_types[msg_type] += 1
                  else:

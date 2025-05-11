@@ -34,9 +34,40 @@ PLOT_DEFINITIONS = {
     'battery': 'Battery Voltage & Current',
     'dist_home': 'Distance from Home',  # New plot type
     'pidp': 'Pitch PID Output',         # New
-    'pidr': 'Roll PID Output'           # New
+    'pidr': 'Roll PID Output',           # New
+    'flight_mode': 'Flight Mode'  # New plot type
 }
 DEFAULT_PLOTS = list(PLOT_DEFINITIONS.keys()) # Initially show all plots
+
+# Flight Mode Mapping
+FLIGHT_MODES = {
+    0: 'MANUAL',
+    1: 'CIRCLE',
+    2: 'STABILIZE',
+    3: 'TRAINING',
+    4: 'ACRO',
+    5: 'FLY_BY_WIRE_A',
+    6: 'FLY_BY_WIRE_B',
+    7: 'CRUISE',
+    8: 'AUTOTUNE',
+    9: '(Reserved)',
+    10: 'AUTO',
+    11: 'RTL',
+    12: 'LOITER',
+    13: 'TAKEOFF',
+    14: '(Reserved)',
+    15: 'GUIDED',
+    16: '(Reserved)',
+    17: 'QSTABILIZE',
+    18: 'QHOVER',
+    19: 'QLOITER',
+    20: 'QLAND',
+    21: 'QRTL',
+    22: 'QAUTOTUNE',
+    23: 'QACRO',
+    24: 'THERMAL',
+    25: 'LOITER_ALT_QLAND'
+}
 
 # --- Removed load_and_prepare_csv and load_and_merge_data functions ---
 # --- They are now imported from flight_data_loader ---
@@ -349,6 +380,63 @@ def create_flight_figure(df_merged, loaded_optional_types, active_plots, log_ide
         else:
             fig.add_annotation(text="No PIDR data loaded", xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False, font=dict(size=14), row=row_idx, col=1)
 
+    # --- New Plot: Flight Mode ---
+    if 'flight_mode' in plot_row_map:
+        row_idx = plot_row_map['flight_mode']
+        has_flight_mode_data = False
+        # Check for the flight mode column - using ModeNum instead of MODE_FlightMode
+        flight_mode_col = 'ModeNum'  # Direct column name from MODE.csv
+
+        if flight_mode_col in df_merged.columns:
+            # Create a copy of the mode data for plotting
+            mode_data = df_merged[flight_mode_col].copy()
+            
+            # Plot the mode line
+            fig.add_trace(go.Scatter(x=df_merged.index, y=mode_data, name='Flight Mode', 
+                                   mode='lines', line=dict(color='purple', width=1), 
+                                   legendgroup='flight_mode'), row=row_idx, col=1)
+            
+            # Add annotations for mode changes
+            mode_changes = mode_data.diff().ne(0)
+            for idx in mode_data[mode_changes].index:
+                mode_value = mode_data[idx]
+                # Skip NaN values
+                if pd.isna(mode_value):
+                    continue
+                mode_num = int(mode_value)
+                mode_name = FLIGHT_MODES.get(mode_num, f'Unknown Mode {mode_num}')
+                fig.add_annotation(
+                    x=idx,
+                    y=mode_num,
+                    text=mode_name,
+                    showarrow=True,
+                    arrowhead=1,
+                    arrowsize=1,
+                    arrowwidth=2,
+                    arrowcolor='purple',
+                    ax=0,
+                    ay=-40,
+                    font=dict(size=10, color='purple'),
+                    row=row_idx,
+                    col=1
+                )
+            
+            has_flight_mode_data = True
+
+        if has_flight_mode_data:
+            # Update y-axis to show mode names
+            fig.update_yaxes(
+                title_text="Flight Mode",
+                ticktext=list(FLIGHT_MODES.values()),
+                tickvals=list(FLIGHT_MODES.keys()),
+                row=row_idx,
+                col=1
+            )
+        else:
+            fig.add_annotation(text="No Flight Mode data loaded", xref="paper", yref="paper",
+                              x=0.5, y=0.5, showarrow=False, font=dict(size=14),
+                              row=row_idx, col=1)
+
     # --- Update Layout ---
     plot_title = f'Flight Analysis: {log_identifier}'
     fig.update_layout(
@@ -425,6 +513,7 @@ if __name__ == "__main__":
     parser.add_argument("--bat-csv", help="Path to the input BAT CSV file (e.g., CSV_OUTPUT/log.BAT.csv)")
     parser.add_argument("--pidp-csv", help="Path to the input PIDP CSV file (e.g., CSV_OUTPUT/log.PIDP.csv)")
     parser.add_argument("--pidr-csv", help="Path to the input PIDR CSV file (e.g., CSV_OUTPUT/log.PIDR.csv)")
+    parser.add_argument("--mode-csv", help="Path to the input MODE CSV file (e.g., CSV_OUTPUT/log.MODE.csv)")  # New
 
     # Dash specific arguments
     parser.add_argument("--host", default="127.0.0.1", help="Host address to run the Dash server on.")
@@ -446,8 +535,9 @@ if __name__ == "__main__":
         'BARO': args.baro_csv,
         'TERR': args.terr_csv,
         'BAT': args.bat_csv,
-        'PIDP': args.pidp_csv,   # New
-        'PIDR': args.pidr_csv    # New
+        'PIDP': args.pidp_csv,
+        'PIDR': args.pidr_csv,
+        'MODE': args.mode_csv    # New
     }
     # Filter out None values before passing to function
     csv_files_provided = {k: v for k, v in csv_files.items() if v is not None}
