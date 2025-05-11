@@ -493,6 +493,103 @@ def create_notes_section(loaded_optional_types):
     return html.Div(notes_list, style={'textAlign': 'left', 'marginLeft': '20px', 'marginRight': '20px'})
 
 
+# --- Create Messages Table Function ---
+def create_messages_table(df_merged):
+    """Creates a Dash DataTable component for displaying messages."""
+    if df_merged is None or df_merged.empty:
+        return html.Div("No message data available")
+        
+    # Check for message columns
+    msg_col = 'MSG_Message'
+    if msg_col not in df_merged.columns:
+        return html.Div("No message data available")
+        
+    # Create a copy of the message data
+    msg_data = df_merged[[msg_col]].copy()
+    msg_data = msg_data.dropna(subset=[msg_col])
+    
+    if msg_data.empty:
+        return html.Div("No messages found")
+    
+    # Format timestamps for display
+    msg_data = msg_data.reset_index()
+    msg_data['timestamp'] = msg_data['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S.%f').str[:-3]  # Format with milliseconds
+    
+    # Create the table with styling
+    return html.Div([
+        dash.dash_table.DataTable(
+            id='messages-table',
+            columns=[
+                {'name': 'Timestamp', 'id': 'timestamp', 'type': 'text'},
+                {'name': 'Message', 'id': msg_col, 'type': 'text'}  # Use msg_col as the id
+            ],
+            data=msg_data.to_dict('records'),
+            style_table={
+                'overflowX': 'auto',
+                'border': '1px solid #ddd',
+                'borderRadius': '5px',
+                'marginTop': '20px'
+            },
+            style_cell={
+                'textAlign': 'left',
+                'padding': '10px',
+                'whiteSpace': 'normal',
+                'height': 'auto',
+                'fontFamily': 'monospace',  # Use monospace font for better readability
+                'fontSize': '14px'
+            },
+            style_header={
+                'backgroundColor': 'rgb(230, 230, 230)',
+                'fontWeight': 'bold',
+                'border': '1px solid #ddd',
+                'textAlign': 'center'
+            },
+            style_data_conditional=[
+                {
+                    'if': {'row_index': 'odd'},
+                    'backgroundColor': 'rgb(248, 248, 248)'
+                },
+                {
+                    'if': {'row_index': 'even'},
+                    'backgroundColor': 'white'
+                }
+            ],
+            sort_action='native',
+            sort_mode='single',
+            filter_action='native',
+            style_data={
+                'whiteSpace': 'normal',
+                'height': 'auto',
+                'lineHeight': '15px',
+                'border': '1px solid #ddd'
+            },
+            # Add tooltips for long messages
+            tooltip_data=[
+                {
+                    msg_col: {'value': str(row[msg_col]), 'type': 'markdown'}  # Use msg_col here too
+                } for row in msg_data.to_dict('records')
+            ],
+            tooltip_delay=0,
+            tooltip_duration=None,
+            # Enable column resizing
+            column_selectable=False,
+            row_selectable=False,
+            # Add export button
+            export_format='csv',
+            export_headers='display',
+            # Add search box
+            filter_options={'case': 'insensitive'},
+            # Add sorting controls
+            sort_by=[{'column_id': 'timestamp', 'direction': 'desc'}],  # Sort by timestamp descending by default
+        ),
+        # Add a note about the table
+        html.Div([
+            html.P("Note: Messages are sorted by timestamp in descending order. Use the search box to filter messages.",
+                  style={'fontStyle': 'italic', 'marginTop': '10px', 'color': '#666'})
+        ])
+    ])
+
+
 # --- Main Application Logic ---
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analyze MAVLink flight data using a Dash web application.")
@@ -513,7 +610,8 @@ if __name__ == "__main__":
     parser.add_argument("--bat-csv", help="Path to the input BAT CSV file (e.g., CSV_OUTPUT/log.BAT.csv)")
     parser.add_argument("--pidp-csv", help="Path to the input PIDP CSV file (e.g., CSV_OUTPUT/log.PIDP.csv)")
     parser.add_argument("--pidr-csv", help="Path to the input PIDR CSV file (e.g., CSV_OUTPUT/log.PIDR.csv)")
-    parser.add_argument("--mode-csv", help="Path to the input MODE CSV file (e.g., CSV_OUTPUT/log.MODE.csv)")  # New
+    parser.add_argument("--mode-csv", help="Path to the input MODE CSV file (e.g., CSV_OUTPUT/log.MODE.csv)")
+    parser.add_argument("--msg-csv", help="Path to the input MSG CSV file (e.g., CSV_OUTPUT/log.MSG.csv)")  # Added MSG argument
 
     # Dash specific arguments
     parser.add_argument("--host", default="127.0.0.1", help="Host address to run the Dash server on.")
@@ -537,7 +635,8 @@ if __name__ == "__main__":
         'BAT': args.bat_csv,
         'PIDP': args.pidp_csv,
         'PIDR': args.pidr_csv,
-        'MODE': args.mode_csv    # New
+        'MODE': args.mode_csv,    # New
+        'MSG': args.msg_csv    # Added MSG argument
     }
     # Filter out None values before passing to function
     csv_files_provided = {k: v for k, v in csv_files.items() if v is not None}
@@ -648,6 +747,12 @@ if __name__ == "__main__":
             ]
         ),
 
+        # Messages Table Section
+        html.Div([
+            html.H3("Flight Log Messages", style={'textAlign': 'center', 'marginTop': '30px'}),
+            html.Div(id='messages-table-container')
+        ]),
+
         # Notes Section
         notes_section # Add the notes below the graph
     ])
@@ -746,6 +851,22 @@ if __name__ == "__main__":
         # Return data for dcc.Download
         return dict(content=html_content, filename=filename)
 
+    # --- Add Callback for Messages Table ---
+    @callback(
+        Output('messages-table-container', 'children'),
+        Input('flight-data-store', 'data')
+    )
+    def update_messages_table(stored_data):
+        if stored_data is None:
+            return html.Div("No data available")
+        
+        # Deserialize data
+        df = pd.DataFrame(stored_data['data'], columns=stored_data['columns'])
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df.set_index('timestamp', inplace=True)
+        df.sort_index(inplace=True)
+        
+        return create_messages_table(df)
 
     # --- Run Dash Server ---
     print("\n" + "="*50)

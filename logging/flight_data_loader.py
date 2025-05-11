@@ -30,7 +30,8 @@ OPTIONAL_COLS_TO_SELECT = {
     'BAT': {'timestamp': 'timestamp', 'Volt': 'BAT_Volt', 'Curr': 'BAT_Curr'},
     'PIDP': {'timestamp': 'timestamp', 'Act': 'PIDP_Act', 'Tar': 'PIDP_Tar', 'P': 'PIDP_P', 'I': 'PIDP_I', 'D': 'PIDP_D', 'Err': 'PIDP_Err'},
     'PIDR': {'timestamp': 'timestamp', 'Act': 'PIDR_Act', 'Tar': 'PIDR_Tar', 'P': 'PIDR_P', 'I': 'PIDR_I', 'D': 'PIDR_D', 'Err': 'PIDR_Err'},
-    'MODE': {'timestamp': 'timestamp', 'ModeNum': 'ModeNum'}
+    'MODE': {'timestamp': 'timestamp', 'ModeNum': 'ModeNum'},
+    'MSG': {'timestamp': 'timestamp', 'Message': 'MSG_Message', 'Severity': 'MSG_Severity'}
 }
 
 # --- Helper Function for Loading Data ---
