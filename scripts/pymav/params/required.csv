@@ -1,6 +1,6 @@
 param_id,value,comment
 SERIAL7_BAUD,460.0,RC TX6 RX6
-SERIAL7_PROTOCOL,23.0,ELRS+CRSF
+RC_OPTIONS,288,Telemetry for Yaapu script
 BRD_ALT_CONFIG,1,RC Input
 FLTMODE_CH,6,Flight mode channel
 FLTMODE1,5,FBWA
@@ -9,7 +9,6 @@ FLTMODE3,11,RTL
 FLTMODE4,13,Takeoff
 FLTMODE5,4,Acro
 FLTMODE6,0,Manual
-RC_OPTIONS,255,Telemetry for Yaapu script
 SERIAL2_BAUD,115.0,Rangefinder TX1 RX1
 SERIAL2_PROTOCOL,32.0,Rangefinder MCP
 RNGFND1_TYPE,32.0,Rangefinder
