@@ -31,7 +31,15 @@ OPTIONAL_COLS_TO_SELECT = {
     'PIDP': {'timestamp': 'timestamp', 'Act': 'PIDP_Act', 'Tar': 'PIDP_Tar', 'P': 'PIDP_P', 'I': 'PIDP_I', 'D': 'PIDP_D', 'Err': 'PIDP_Err'},
     'PIDR': {'timestamp': 'timestamp', 'Act': 'PIDR_Act', 'Tar': 'PIDR_Tar', 'P': 'PIDR_P', 'I': 'PIDR_I', 'D': 'PIDR_D', 'Err': 'PIDR_Err'},
     'MODE': {'timestamp': 'timestamp', 'ModeNum': 'ModeNum'},
-    'MSG': {'timestamp': 'timestamp', 'Message': 'MSG_Message', 'Severity': 'MSG_Severity'}
+    'MSG': {'timestamp': 'timestamp', 'Message': 'MSG_Message', 'Severity': 'MSG_Severity'},
+    'OF': {
+        'timestamp': 'timestamp',
+        'flowX': 'OF_flowX',
+        'flowY': 'OF_flowY',
+        'bodyX': 'OF_bodyX',
+        'bodyY': 'OF_bodyY',
+        'Qual': 'OF_Qual'
+    },
 }
 
 # --- Helper Function for Loading Data ---
