@@ -16,11 +16,11 @@ SERIAL3_BAUD,9,GPS TX2 RX2
 SERIAL3_PROTOCOL,5.0,GPS U-blox
 GPS1_TYPE,2,GPS
 AIRSPEED_CRUISE,16,Airspeed cruise 57 KmH
-AIRSPEED_MAX,33.3,Airspeed max 120 KmH
+AIRSPEED_MAX,33,Airspeed max 120 KmH
 AIRSPEED_MIN,15,Airspeed min 54 KmH
 AIRSPEED_STALL,13.89,Stall for landing
 ARSPD_USE,1,Airspeed influencing to Throttle
-ARSPD_TYPE,9,i2c-dlvr
+ARSPD_TYPE,1.0,i2c
 SERVO10_FUNCTION,73,Throttle left
 SERVO9_FUNCTION,74,Throttle right
 SERVO8_FUNCTION,4,Aileron left
