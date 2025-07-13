@@ -1,4 +1,5 @@
 import time
+import argparse
 from pymavlink import mavutil
 from tqdm import tqdm
 
@@ -20,9 +21,17 @@ def request_data_streams(connection):
     )
 
 def main():
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Read IMU data from MAVLink connection')
+    parser.add_argument('--port', '-p', default='/dev/ttyS0', 
+                       help='Serial port to connect to (default: /dev/ttyS0)')
+    parser.add_argument('--baud', '-b', type=int, default=1500000,
+                       help='Baud rate for serial connection (default: 1500000)')
+    args = parser.parse_args()
+
     try:
         # Establish connection
-        vehicle = connect_to_vehicle('/dev/ttyS0', 1500000)
+        vehicle = connect_to_vehicle(args.port, args.baud)
 
         # Request data streams
         request_data_streams(vehicle)
