@@ -49,7 +49,7 @@ def main():
         print("Reading magnetometer data... (Press Ctrl+C to stop)")
 
         # Initialize tqdm bars for magnetometer readings
-        mag_min, mag_max = -2000, 2000  # mGauss (typical range for magnetometer)
+        mag_min, mag_max = -3000, 3000  # mGauss (typical range for magnetometer)
         heading_min, heading_max = 0, 360  # degrees
         mag_range = mag_max - mag_min
         heading_range = heading_max - heading_min
