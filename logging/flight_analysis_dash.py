@@ -35,9 +35,13 @@ PLOT_DEFINITIONS = {
     'dist_home': 'Distance from Home',  # New plot type
     'pidp': 'Pitch PID Output',         # New
     'pidr': 'Roll PID Output',           # New
-    'flight_mode': 'Flight Mode'  # New plot type
+    'flight_mode': 'Flight Mode',  # New plot type
+    'optical_flow': 'Optical Flow (OF)',
+    'of_calib_roll': 'OF Roll Calibration (flowX, bodyX, GyrX)',
+    'of_calib_pitch': 'OF Pitch Calibration (flowY, bodyY, GyrY)',
 }
-DEFAULT_PLOTS = list(PLOT_DEFINITIONS.keys()) # Initially show all plots
+# DEFAULT_PLOTS = list(PLOT_DEFINITIONS.keys()) # Initially show all plots
+DEFAULT_PLOTS = [] # No plots selected by default
 
 # Flight Mode Mapping
 FLIGHT_MODES = {
@@ -437,6 +441,111 @@ def create_flight_figure(df_merged, loaded_optional_types, active_plots, log_ide
                               x=0.5, y=0.5, showarrow=False, font=dict(size=14),
                               row=row_idx, col=1)
 
+    # --- New Plot: Optical Flow ---
+    if 'optical_flow' in plot_row_map:
+        row_idx = plot_row_map['optical_flow']
+        has_of_data = False
+        if 'OF' in loaded_optional_types:
+            if 'OF_flowX' in df_merged.columns and 'OF_flowY' in df_merged.columns:
+                fig.add_trace(go.Scatter(
+                    x=df_merged.index, y=df_merged['OF_flowX'],
+                    name='Optical Flow X', mode='lines', line=dict(color='blue', width=1),
+                    legendgroup='optical_flow'
+                ), row=row_idx, col=1)
+                fig.add_trace(go.Scatter(
+                    x=df_merged.index, y=df_merged['OF_flowY'],
+                    name='Optical Flow Y', mode='lines', line=dict(color='red', width=1),
+                    legendgroup='optical_flow'
+                ), row=row_idx, col=1)
+                has_of_data = True
+            if 'OF_bodyX' in df_merged.columns and 'OF_bodyY' in df_merged.columns:
+                fig.add_trace(go.Scatter(
+                    x=df_merged.index, y=df_merged['OF_bodyX'],
+                    name='Body X', mode='lines', line=dict(color='orange', width=1, dash='dot'),
+                    legendgroup='optical_flow'
+                ), row=row_idx, col=1)
+                fig.add_trace(go.Scatter(
+                    x=df_merged.index, y=df_merged['OF_bodyY'],
+                    name='Body Y', mode='lines', line=dict(color='green', width=1, dash='dot'),
+                    legendgroup='optical_flow'
+                ), row=row_idx, col=1)
+                has_of_data = True
+            if 'OF_Qual' in df_merged.columns:
+                fig.add_trace(go.Scatter(
+                    x=df_merged.index, y=df_merged['OF_Qual'],
+                    name='Quality', mode='lines', line=dict(color='purple', width=1, dash='dash'),
+                    legendgroup='optical_flow'
+                ), row=row_idx, col=1)
+                has_of_data = True
+        if has_of_data:
+            fig.update_yaxes(title_text="Optical Flow", row=row_idx, col=1)
+        else:
+            fig.add_annotation(
+                text="No Optical Flow data loaded", xref="paper", yref="paper",
+                x=0.5, y=0.5, showarrow=False, font=dict(size=14),
+                row=row_idx, col=1
+            )
+
+    # --- OF Roll Calibration Plot ---
+    if 'of_calib_roll' in plot_row_map:
+        row_idx = plot_row_map['of_calib_roll']
+        has_data = False
+        # Check for required columns
+        if 'OF_flowX' in df_merged.columns and 'OF_bodyX' in df_merged.columns and 'GyrX' in df_merged.columns:
+            fig.add_trace(go.Scatter(
+                x=df_merged.index, y=df_merged['OF_flowX'],
+                name='flowX', mode='lines', line=dict(color='red', width=1),
+                legendgroup='of_calib_roll'
+            ), row=row_idx, col=1)
+            fig.add_trace(go.Scatter(
+                x=df_merged.index, y=df_merged['OF_bodyX'],
+                name='bodyX', mode='lines', line=dict(color='green', width=1),
+                legendgroup='of_calib_roll'
+            ), row=row_idx, col=1)
+            fig.add_trace(go.Scatter(
+                x=df_merged.index, y=df_merged['GyrX'],
+                name='GyrX', mode='lines', line=dict(color='blue', width=1),
+                legendgroup='of_calib_roll'
+            ), row=row_idx, col=1)
+            has_data = True
+        if has_data:
+            fig.update_yaxes(title_text="Output", row=row_idx, col=1)
+        else:
+            fig.add_annotation(
+                text="OF.flowX, OF.bodyX, or IMU.GyrX missing", xref="paper", yref="paper",
+                x=0.5, y=0.5, showarrow=False, font=dict(size=14),
+                row=row_idx, col=1
+            )
+    # --- OF Pitch Calibration Plot ---
+    if 'of_calib_pitch' in plot_row_map:
+        row_idx = plot_row_map['of_calib_pitch']
+        has_data = False
+        if 'OF_flowY' in df_merged.columns and 'OF_bodyY' in df_merged.columns and 'GyrY' in df_merged.columns:
+            fig.add_trace(go.Scatter(
+                x=df_merged.index, y=df_merged['OF_flowY'],
+                name='flowY', mode='lines', line=dict(color='red', width=1),
+                legendgroup='of_calib_pitch'
+            ), row=row_idx, col=1)
+            fig.add_trace(go.Scatter(
+                x=df_merged.index, y=df_merged['OF_bodyY'],
+                name='bodyY', mode='lines', line=dict(color='green', width=1),
+                legendgroup='of_calib_pitch'
+            ), row=row_idx, col=1)
+            fig.add_trace(go.Scatter(
+                x=df_merged.index, y=df_merged['GyrY'],
+                name='GyrY', mode='lines', line=dict(color='blue', width=1),
+                legendgroup='of_calib_pitch'
+            ), row=row_idx, col=1)
+            has_data = True
+        if has_data:
+            fig.update_yaxes(title_text="Output", row=row_idx, col=1)
+        else:
+            fig.add_annotation(
+                text="OF.flowY, OF.bodyY, or IMU.GyrY missing", xref="paper", yref="paper",
+                x=0.5, y=0.5, showarrow=False, font=dict(size=14),
+                row=row_idx, col=1
+            )
+
     # --- Update Layout ---
     plot_title = f'Flight Analysis: {log_identifier}'
     fig.update_layout(
@@ -487,6 +596,15 @@ def create_notes_section(loaded_optional_types):
             html.H3("--- Battery Notes ---", style={'margin-top': '20px'}),
             html.P("BAT.Volt: Measured battery voltage."),
             html.P("BAT.Curr: Measured total current draw from the battery."),
+            html.Hr()
+        ])
+
+    if 'OF' in loaded_optional_types:
+        notes_list.extend([
+            html.H3("--- Optical Flow Notes ---", style={'margin-top': '20px'}),
+            html.P("OF_flowX/Y: Optical flow sensor readings (X/Y axes)."),
+            html.P("OF_bodyX/Y: Body frame optical flow (X/Y axes)."),
+            html.P("OF_Qual: Quality metric for optical flow."),
             html.Hr()
         ])
 
@@ -612,6 +730,7 @@ if __name__ == "__main__":
     parser.add_argument("--pidr-csv", help="Path to the input PIDR CSV file (e.g., CSV_OUTPUT/log.PIDR.csv)")
     parser.add_argument("--mode-csv", help="Path to the input MODE CSV file (e.g., CSV_OUTPUT/log.MODE.csv)")
     parser.add_argument("--msg-csv", help="Path to the input MSG CSV file (e.g., CSV_OUTPUT/log.MSG.csv)")  # Added MSG argument
+    parser.add_argument("--of-csv", help="Path to the input OF CSV file (e.g., CSV_OUTPUT/log.OF.csv)")
 
     # Dash specific arguments
     parser.add_argument("--host", default="127.0.0.1", help="Host address to run the Dash server on.")
@@ -636,7 +755,8 @@ if __name__ == "__main__":
         'PIDP': args.pidp_csv,
         'PIDR': args.pidr_csv,
         'MODE': args.mode_csv,    # New
-        'MSG': args.msg_csv    # Added MSG argument
+        'MSG': args.msg_csv,    # Added MSG argument
+        'OF': args.of_csv,
     }
     # Filter out None values before passing to function
     csv_files_provided = {k: v for k, v in csv_files.items() if v is not None}
