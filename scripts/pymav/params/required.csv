@@ -34,7 +34,7 @@ SERVO1_REVERSED,1,VTailRight reverse
 RC5_OPTION,153,ArmDisarm
 SERIAL5_BAUD,115,Raspberry PI TX8 RX8
 SERIAL5_PROTOCOL,2,Raspberry PI MAVLink2
-AHRS_ORIENTATION,16,Roll 90
+AHRS_ORIENTATION,16,Flight controller Roll 90
 AHRS_TRIM_X,0.05,yaw trim 2.87 degrees
 RTL_AUTOLAND,1,enable auto-landing
 SERIAL2_BAUD,115.0,Rangefinder TX1 RX1
